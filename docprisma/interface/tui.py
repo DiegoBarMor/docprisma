@@ -1,4 +1,3 @@
-from pathlib import Path
 import prismatui as pr
 
 import docprisma as dpr
@@ -12,9 +11,9 @@ class TUIDocPrisma(pr.Terminal):
     KEY_SCROLL_BOTTOM = ord('+')
 
     # --------------------------------------------------------------------------
-    def __init__(self, path_doc: str | Path):
+    def __init__(self, doc: dpr.DocData):
         super().__init__()
-        self._path_doc = Path(path_doc)
+        self._doc = doc
 
 
     # --------------------------------------------------------------------------
@@ -54,11 +53,12 @@ class TUIDocPrisma(pr.Terminal):
         hdisplay = self.body.h - 2
         self.NLINES_FAST_SCROLL = hdisplay // 2 # dinamically adjust fast scroll based on terminal height
 
-        lines = [] # [TODO]
-        chars = ['' for _ in lines] # [TODO]
-        attrs = [0  for _ in lines] # [TODO]
+        lines = [line for line in self._doc.iter_lines()] # [WIP]
+        self.body.draw_text(1,1,'\n'.join(lines))
+        # chars = ['' for _ in lines] # [TODO]
+        # attrs = [0  for _ in lines] # [TODO]
 
-        self.body.draw_matrix(1, 1, chars, attrs)
+        # self.body.draw_matrix(1, 1, chars, attrs)
 
 
     # --------------------------------------------------------------------------
@@ -69,7 +69,7 @@ class TUIDocPrisma(pr.Terminal):
     # --------------------------------------------------------------------------
     def _draw_borders(self):
         self.body.draw_border()
-        self.body.draw_text(0, 2, f" {self._path_doc.name} ", pr.A_BOLD)
+        self.body.draw_text(0, 2, f" {self._doc.name} ", pr.A_BOLD)
 
         self.footer.draw_border(bl = '│', bs = ' ', br = '│')
 

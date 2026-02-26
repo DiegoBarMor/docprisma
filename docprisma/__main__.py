@@ -10,7 +10,8 @@ def main():
         exit(-1)
 
     PATH_DOC = Path(sys.argv[1])
-    dpr.TUIDocPrisma(PATH_DOC).run()
+    doc = dpr.DocData.load_doc(PATH_DOC)
+    dpr.TUIDocPrisma(doc).run()
 
 
 ################################################################################
