@@ -1,0 +1,6 @@
+.vscode/
+desktop.ini
+**/__pycache__/
+
+install.sh
+upload.sh
