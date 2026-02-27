@@ -46,6 +46,9 @@ class TUIDocPrisma(pr.Terminal):
             case pr.KEY_NPAGE:   self._scroll_down(self.NLINES_FAST_SCROLL)
             case self.KEY_SCROLL_TOP:    self._scroll_up(float("inf"))
             case self.KEY_SCROLL_BOTTOM: self._scroll_down(float("inf"))
+            case pr.KEY_LEFT:  self._doc.prev_node()
+            case pr.KEY_RIGHT: self._doc.next_node()
+
 
 
     # --------------------------------------------------------------------------
@@ -53,12 +56,10 @@ class TUIDocPrisma(pr.Terminal):
         hdisplay = self.body.h - 2
         self.NLINES_FAST_SCROLL = hdisplay // 2 # dinamically adjust fast scroll based on terminal height
 
-        lines = [line for line in self._doc.iter_lines()] # [WIP]
-        self.body.draw_text(1,1,'\n'.join(lines))
-        # chars = ['' for _ in lines] # [TODO]
-        # attrs = [0  for _ in lines] # [TODO]
+        self._doc.section_width = self.body.w - 2
 
-        # self.body.draw_matrix(1, 1, chars, attrs)
+        chars, attrs = self._doc.get_chars_attrs(hdisplay)
+        self.body.draw_matrix(1, 1, chars, attrs)
 
 
     # --------------------------------------------------------------------------
@@ -69,22 +70,18 @@ class TUIDocPrisma(pr.Terminal):
     # --------------------------------------------------------------------------
     def _draw_borders(self):
         self.body.draw_border()
-        self.body.draw_text(0, 2, f" {self._doc.name} ", pr.A_BOLD)
-
+        self.body.draw_text(0, 2, f" {self._doc.name}:{self._doc.get_nodes_path()} ", pr.A_BOLD)
         self.footer.draw_border(bl = '│', bs = ' ', br = '│')
 
 
     # --------------------------------------------------------------------------
     def _scroll_up(self, nlines: int):
-        ... # [TODO]
-        # current_line = max(0, current_line - nlines)
+        self._doc.idx = max(0, self._doc.idx - nlines)
 
 
     # --------------------------------------------------------------------------
     def _scroll_down(self, nlines: int):
-        ... # [TODO]
-        # nlines_available = count_lines(self._filter_key) - 1 # account for NONE terminator line
-        # current_line = min(current_line + nlines, nlines_available - 1)
+        self._doc.idx = min(self._doc.idx + nlines, len(self._doc.data) - 1)
 
 
 # //////////////////////////////////////////////////////////////////////////////
