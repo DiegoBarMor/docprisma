@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import prismatui as pr
+
 import docprisma as dpr
 
 # ------------------------------------------------------------------------------
@@ -21,13 +23,16 @@ class DocJson(dpr.DocData):
 
         self._update_data()
 
+
     # --------------------------------------------------------------------------
     def iter_lines(self, nlines: int = None):
         node_is_dict = isinstance(self._node, dict)
         children = tuple(super().iter_lines(nlines = None, filterkey = None))
 
         if node_is_dict or any(map(is_container, children)):
-            for child in children[self.ypos : self.ypos+nlines]:
+            for i,child in enumerate(children[self.ypos : self.ypos+nlines]):
+                idx = i + self.ypos
+
                 if node_is_dict:
                     key = child
                     child = self._node[key]
@@ -36,31 +41,54 @@ class DocJson(dpr.DocData):
                     out = f"({type(child).__name__}): "
 
                 if isinstance(child, list):
-                    yield f"{out}list[{len(child)}]"
+                    out = f"{out}list[{len(child)}]"
                 elif isinstance(child, dict):
-                    yield f"{out}dict[{len(child)}]"
+                    out = f"{out}dict[{len(child)}]"
                 else:
-                    yield f"{out}{child}"
+                    out = f"{out}{child}"
+
+                highlight_end = len(out) if idx == self.idx else 0
+                yield out, 0, highlight_end
             return
 
-        # children: list[str] = [
-        #     f'"{child}"' if isinstance(child, str) else str(child)
-        #     for child in children
-        # ]
-
-
+        i0 = 0
+        out = ""
+        highlight_start = 0
+        highlight_end = 0
         children = tuple(map(str, children))
-
-        w = 0; i0 = 0
         for idx,child in enumerate(children):
-            w += len(child) + 1
-            if w <= self.section_width: continue
-            w = 0
+            last_iter = idx == len(children) - 1
 
-            i1 = idx if idx != i0 else i0+1
-            yield ' '.join(children[i0:i1])
+            if idx == self.idx:
+                highlight_start = len(out)
+                highlight_end = highlight_start + len(child)
+
+            out += child + " "
+
+            next_len = len(out) + (len(children[idx+1]) if not last_iter else 0)
+
+            if not last_iter and (next_len < self.section_width):
+                continue
+
+            i1 = idx + 1
+
+            yield ' '.join(children[i0:i1]), highlight_start, highlight_end
+            highlight_start = 0
+            highlight_end = 0
+            out = ""
             i0 = i1
-        yield ' '.join(children[i0:])
+
+
+    # --------------------------------------------------------------------------
+    def get_chars_attrs(self, nlines: int = None):
+        lines,h_starts,h_ends = zip(*self.iter_lines(nlines))
+        w_max = max(map(len, lines), default = 0)
+        chars = [line.ljust(w_max) for line in lines]
+        attrs = [
+            hs*[pr.A_NORMAL] + (he-hs)*[pr.A_REVERSE] + (w_max-he)*[pr.A_NORMAL]
+            for hs,he in zip(h_starts, h_ends)
+        ]
+        return chars, attrs
 
 
     # --------------------------------------------------------------------------
