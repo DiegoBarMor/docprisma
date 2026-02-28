@@ -7,10 +7,10 @@ import docprisma as dpr
 # //////////////////////////////////////////////////////////////////////////////
 class DocData:
     # --------------------------------------------------------------------------
-    def __init__(self, path_doc: Path):
-        self.path: Path = path_doc
-        self.name: str  = path_doc.name
-        self.data: list | dict = None
+    def __init__(self, path_doc: Path = None):
+        self.path: Path = path_doc if path_doc is not None else Path()
+        self.name: str  = self.path.name
+        self.data: list | dict = []
         self.idx: int = 0  # highlighted row
         self.ypos: int = 0
         self.section_width = 0
@@ -39,7 +39,7 @@ class DocData:
 
     # --------------------------------------------------------------------------
     def get_chars_attrs(self, nlines: int = None):
-        pass
+        return [], []
         # lines = tuple(self.iter_lines(nlines)) # [WIP] something like this will be fine for CSV handling
         # w_max = max(map(len, lines), default = 0) # [WIP] remove it from here once it's there
         # chars = [line.ljust(w_max) for line in lines]
