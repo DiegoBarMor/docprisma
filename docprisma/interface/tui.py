@@ -68,6 +68,8 @@ class TUIDocPrisma(pr.Terminal):
         self._ldoc.section_width = self.body_left.w - 2
         self._rdoc.section_width = self.body_right.w - 2
 
+        self._ldoc.compare_to(self._rdoc)
+
         chars, attrs = self._ldoc.get_chars_attrs(hdisplay)
         self.body_left.draw_matrix(1, 1, chars, attrs)
 

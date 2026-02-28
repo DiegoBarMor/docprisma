@@ -14,6 +14,7 @@ class DocJson(dpr.DocData):
     def __init__(self, path_json: Path):
         super().__init__(path_json)
         self.data : list = [] # either a list from the json directly, or the sorted keys if the current json node is a dict
+        self.node_is_leaf = False
 
         self._root : list | dict = json.loads(path_json.read_text()) # the data is actually stored in the root node
         self._node : list | dict = self._root # pointer that can move around the nodes' hierarchy
@@ -21,16 +22,17 @@ class DocJson(dpr.DocData):
         self._prev_nodes : list[list | dict] = [] # store the pointers for previous nodes
         self._nodes_path : str = "/" # string with the path of the current node
 
+
         self._update_data()
 
 
     # --------------------------------------------------------------------------
     def iter_lines(self, nlines: int = None):
-        node_is_dict = isinstance(self._node, dict)
-        children = tuple(super().iter_lines(nlines = None, filterkey = None))
+        children = super().iter_lines(nlines = None, filterkey = None)
 
-        if node_is_dict or any(map(is_container, children)):
-            for i,child in enumerate(children[self.ypos : self.ypos+nlines]):
+        if self.node_is_leaf:
+            node_is_dict = isinstance(self._node, dict)
+            for i,child in enumerate(tuple(children)[self.ypos : self.ypos+nlines]):
                 idx = i + self.ypos
 
                 if node_is_dict:
@@ -121,8 +123,17 @@ class DocJson(dpr.DocData):
 
 
     # --------------------------------------------------------------------------
+    def compare_to(self, other: "DocJson") -> None:
+        if not isinstance(other, DocJson): return
+        ...
+
+    # --------------------------------------------------------------------------
     def _update_data(self):
-        self.data = self._node if isinstance(self._node, list) else sorted(self._node.keys())
+        node_is_dict = isinstance(self._node, dict)
+        has_container_children = any(map(is_container, super().iter_lines(nlines = None, filterkey = None)))
+
+        self.data = sorted(self._node.keys()) if node_is_dict else self._node
+        self.node_is_leaf = node_is_dict or has_container_children
 
 
 # //////////////////////////////////////////////////////////////////////////////
