@@ -19,11 +19,12 @@ class TUIDocPrisma(pr.Terminal):
         self._docs = [dpr.DocData.load_doc(p) for p in paths_doc]
         self._ldoc = self._safe_load_doc(0) # pointer to currently loaded doc (body_left)
         self._rdoc = self._safe_load_doc(1) # pointer to currently loaded doc (body_right)
-
+        self._ldoc_focused = True
 
     # --------------------------------------------------------------------------
     def on_start(self):
         self.pair_help = pr.init_pair(1, pr.COLOR_BLACK, pr.COLOR_CYAN)
+        self.pair_highlight_section = pr.init_pair(2, pr.COLOR_GREEN, pr.COLOR_BLACK)
 
         self.body   = self.root.create_child(-self.H_GUIDES, 1.0,  0, 0)
         self.footer = self.root.create_child( self.H_GUIDES, 1.0, -1, 0)
@@ -53,9 +54,10 @@ class TUIDocPrisma(pr.Terminal):
             case pr.KEY_NPAGE:   self._scroll_down(self.NLINES_FAST_SCROLL)
             case self.KEY_SCROLL_TOP:    self._scroll_up(float("inf"))
             case self.KEY_SCROLL_BOTTOM: self._scroll_down(float("inf"))
-            case pr.KEY_LEFT:  self._ldoc.prev_node()
-            case pr.KEY_RIGHT: self._ldoc.next_node()
-
+            case pr.KEY_F_LOWER: self._switch_focus()
+            case pr.KEY_F_UPPER: self._switch_focus()
+            case pr.KEY_LEFT:  self._prev_node_focused()
+            case pr.KEY_RIGHT: self._next_node_focused()
 
 
     # --------------------------------------------------------------------------
@@ -64,9 +66,13 @@ class TUIDocPrisma(pr.Terminal):
         self.NLINES_FAST_SCROLL = hdisplay // 2 # dinamically adjust fast scroll based on terminal height
 
         self._ldoc.section_width = self.body_left.w - 2
+        self._rdoc.section_width = self.body_right.w - 2
 
         chars, attrs = self._ldoc.get_chars_attrs(hdisplay)
         self.body_left.draw_matrix(1, 1, chars, attrs)
+
+        chars, attrs = self._rdoc.get_chars_attrs(hdisplay)
+        self.body_right.draw_matrix(1, 1, chars, attrs)
 
 
     # --------------------------------------------------------------------------
@@ -76,10 +82,17 @@ class TUIDocPrisma(pr.Terminal):
 
     # --------------------------------------------------------------------------
     def _draw_borders(self):
-        self.body_left.draw_border()
+        if self._ldoc_focused:
+            attr_lborder = pr.A_BOLD | self.pair_highlight_section
+            attr_rborder = pr.A_NORMAL
+        else:
+            attr_lborder = pr.A_NORMAL
+            attr_rborder = pr.A_BOLD | self.pair_highlight_section
+
+        self.body_left.draw_border(attr = attr_lborder)
         self.body_left.draw_text(0, 2, f" {self._ldoc.name}:{self._ldoc.get_nodes_path()} ", pr.A_BOLD)
 
-        self.body_right.draw_border()
+        self.body_right.draw_border(attr = attr_rborder)
         self.body_right.draw_text(0, 2, f" {self._rdoc.name}:{self._rdoc.get_nodes_path()} ", pr.A_BOLD)
 
         self.footer.draw_border(bl = '│', bs = ' ', br = '│')
@@ -87,12 +100,35 @@ class TUIDocPrisma(pr.Terminal):
 
     # --------------------------------------------------------------------------
     def _scroll_up(self, nlines: int):
-        self._ldoc.idx = max(0, self._ldoc.idx - nlines)
+        doc = self._get_focused_doc()
+        doc.idx = max(0, doc.idx - nlines)
 
 
     # --------------------------------------------------------------------------
     def _scroll_down(self, nlines: int):
-        self._ldoc.idx = min(self._ldoc.idx + nlines, len(self._ldoc.data) - 1)
+        doc = self._get_focused_doc()
+        doc.idx = min(doc.idx + nlines, len(doc.data) - 1)
+
+
+    # ------------------------------------------------------------------------------
+    def _switch_focus(self):
+        self._ldoc_focused = not self._ldoc_focused
+
+
+    # ------------------------------------------------------------------------------
+    def _prev_node_focused(self):
+        self._get_focused_doc().prev_node()
+
+
+    # ------------------------------------------------------------------------------
+    def _next_node_focused(self):
+        self._get_focused_doc().next_node()
+
+
+    # ------------------------------------------------------------------------------
+    def _get_focused_doc(self) -> dpr.DocData:
+        return self._ldoc if self._ldoc_focused else self._rdoc
+
 
     # ------------------------------------------------------------------------------
     def _safe_load_doc(self, idx: int) -> dpr.DocData:
