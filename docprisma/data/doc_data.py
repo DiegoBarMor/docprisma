@@ -11,9 +11,10 @@ class DocData:
         self.path: Path = path_doc if path_doc is not None else Path()
         self.name: str  = self.path.name
         self.data: list | dict = []
-        self.idx: int = 0  # highlighted row
-        self.ypos: int = 0
-        self.section_width = 0
+        self.section_width:int = 0
+        self.idx_row_top: int = 0
+        self.idx_row_current: int = 0 # row with the currently highlighted child
+        self.idx_child_current: int = 0  # currently highlighted child
 
         self._comparison_partner: "DocData" | None = None
         self._comparison_states: list[dpr.ComparisonState] | None = None
@@ -43,14 +44,17 @@ class DocData:
 
 
     # ------------------------------------------------------------------------------
-    def update_ypos(self, ref_h: int, idx: int = None):
-        if idx is None: idx = self.idx
-
-        y_rel = idx - self.ypos
+    def update_idx_row_top(self, ref_h: int):
+        y_rel = self.idx_row_current - self.idx_row_top
         if y_rel < 0:
-            self.ypos = idx
+            self.idx_row_top = self.idx_row_current
         elif y_rel >= ref_h:
-            self.ypos = idx - ref_h + 1
+            self.idx_row_top = self.idx_row_current - ref_h + 1
+
+
+    # --------------------------------------------------------------------------
+    def update_idx_row_current(self):
+        self.idx_row_current = self.idx_child_current
 
 
     # --------------------------------------------------------------------------
@@ -61,6 +65,20 @@ class DocData:
     # --------------------------------------------------------------------------
     def get_nodes_path(self) -> str:
         return ""
+
+
+    # --------------------------------------------------------------------------
+    def scroll_up(self, nlines: int, href: int):
+        self.idx_child_current = max(0, self.idx_child_current - nlines)
+        self.update_idx_row_current()
+        self.update_idx_row_top(href)
+
+
+    # --------------------------------------------------------------------------
+    def scroll_down(self, nlines: int, href: int):
+        self.idx_child_current = min(self.idx_child_current + nlines, len(self.data) - 1)
+        self.update_idx_row_current()
+        self.update_idx_row_top(href)
 
 
     # --------------------------------------------------------------------------
@@ -76,7 +94,7 @@ class DocData:
     # --------------------------------------------------------------------------
     def _iter_children(self, nlines: int = None):
         if nlines is None: nlines = len(self.data)
-        lines = self.data[self.ypos : self.ypos+nlines]
+        lines = self.data[self.idx_row_top : self.idx_row_top+nlines]
         yield from lines
 
 
