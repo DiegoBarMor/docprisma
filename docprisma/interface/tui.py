@@ -51,6 +51,12 @@ class TUIDocPrisma(pr.Terminal):
 
 
     # --------------------------------------------------------------------------
+    def on_resize(self):
+        self._ldoc.update_ypos(ref_h = self.body_left.h - 2)
+        self._rdoc.update_ypos(ref_h = self.body_left.h - 2)
+
+
+    # --------------------------------------------------------------------------
     def should_stop(self):
         return self.key == pr.KEY_Q_LOWER or self.key == pr.KEY_Q_UPPER
 
@@ -111,11 +117,13 @@ class TUIDocPrisma(pr.Terminal):
     # --------------------------------------------------------------------------
     def _scroll_up(self, nlines: int):
         self._doc_focused.idx = max(0, self._doc_focused.idx - nlines)
+        self._doc_focused.update_ypos(ref_h = self.body_left.h - 2)
 
 
     # --------------------------------------------------------------------------
     def _scroll_down(self, nlines: int):
         self._doc_focused.idx = min(self._doc_focused.idx + nlines, len(self._doc_focused.data) - 1)
+        self._doc_focused.update_ypos(ref_h = self.body_left.h - 2)
 
 
     # ------------------------------------------------------------------------------
@@ -128,6 +136,7 @@ class TUIDocPrisma(pr.Terminal):
         self._doc_focused.prev_node()
         self._ldoc.update_comparison_states()
         self._rdoc.update_comparison_states()
+        self._doc_focused.update_ypos(ref_h = self.body_left.h - 2)
 
 
     # ------------------------------------------------------------------------------
@@ -135,6 +144,7 @@ class TUIDocPrisma(pr.Terminal):
         self._doc_focused.next_node()
         self._ldoc.update_comparison_states()
         self._rdoc.update_comparison_states()
+        self._doc_focused.ypos = 0
 
 
     # ------------------------------------------------------------------------------

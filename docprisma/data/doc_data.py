@@ -42,6 +42,15 @@ class DocData:
         self._comparison_states = None
 
 
+    # ------------------------------------------------------------------------------
+    def update_ypos(self, ref_h: int):
+        y_rel = self.idx - self.ypos
+        if y_rel < 0:
+            self.ypos = self.idx
+        elif y_rel >= ref_h:
+            self.ypos = self.idx - ref_h + 1
+
+
     # --------------------------------------------------------------------------
     def get_chars_attrs(self, nlines: int = None) -> tuple[list[str], list[list[int]]]:
         return [], []

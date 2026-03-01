@@ -28,6 +28,8 @@ class DocJson(dpr.DocData):
 
     # --------------------------------------------------------------------------
     def get_chars_attrs(self, nlines: int = None):
+        if nlines <= 0: return [], []
+
         iterator = self._iter_chars_attrs_leaf if self._node_is_leaf else self._iter_chars_attrs_nonleaf
         lines,attrs = zip(*iterator(nlines))
         w_max = max(map(len, lines), default = 0)
@@ -101,27 +103,31 @@ class DocJson(dpr.DocData):
 
     # --------------------------------------------------------------------------
     def _iter_chars_attrs_leaf(self, nlines: int):
+        self.ypos = 0 # ignore previous corrections, it must be handled differently for leaf nodes
+
         i0 = 0
+        cum_len = 0
+        yield_count = 0
         highlight_start = 0
         highlight_end = 0
-        buffer = ""
         comparison_colors = []
+
         children = tuple(map(str, self._iter_children()))
         for idx,child in enumerate(children):
             last_iter = idx == len(children) - 1
 
+            this_len = len(child)
+            next_len = len(children[idx+1]) if not last_iter else 0
+
             if idx == self.idx:
-                highlight_start = len(buffer)
-                highlight_end = highlight_start + len(child)
+                highlight_start = cum_len
+                highlight_end = cum_len + this_len
 
-            child += " "
+            this_len += 1 # account for the space between rows
+            comparison_colors += [self._get_comparison_attr(idx) for _ in range(this_len)]
+            cum_len += this_len
 
-            buffer += child
-            comparison_colors += [self._get_comparison_attr(idx) for _ in child]
-
-            next_len = len(buffer) + (len(children[idx+1]) if not last_iter else 0)
-
-            if not last_iter and (next_len < self.section_width):
+            if not last_iter and (cum_len + next_len < self.section_width):
                 continue
 
             i1 = idx + 1
@@ -133,9 +139,10 @@ class DocJson(dpr.DocData):
             ]
 
             yield row_chars, row_attrs
+            cum_len = 0
+            yield_count += 1
             highlight_start = 0
             highlight_end = 0
-            buffer = ""
             comparison_colors.clear()
             i0 = i1
 
