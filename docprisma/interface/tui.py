@@ -21,6 +21,11 @@ class TUIDocPrisma(pr.Terminal):
         self._rdoc = self._safe_load_doc(1) # pointer to currently loaded doc (body_right)
         self._ldoc_focused = True
 
+        if not isinstance(self._ldoc, dpr.DocJson): return
+        if not isinstance(self._rdoc, dpr.DocJson): return
+        self._ldoc.link_comparison_partner(self._rdoc)
+
+
     # --------------------------------------------------------------------------
     def on_start(self):
         self.pair_help = pr.init_pair(1, pr.COLOR_BLACK, pr.COLOR_CYAN)
@@ -67,8 +72,6 @@ class TUIDocPrisma(pr.Terminal):
 
         self._ldoc.section_width = self.body_left.w - 2
         self._rdoc.section_width = self.body_right.w - 2
-
-        self._ldoc.compare_to(self._rdoc)
 
         chars, attrs = self._ldoc.get_chars_attrs(hdisplay)
         self.body_left.draw_matrix(1, 1, chars, attrs)

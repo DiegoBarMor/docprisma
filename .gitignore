@@ -2,5 +2,6 @@
 desktop.ini
 **/__pycache__/
 
+debug.sh
 install.sh
 upload.sh
