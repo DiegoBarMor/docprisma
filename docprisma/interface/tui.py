@@ -19,7 +19,9 @@ class TUIDocPrisma(pr.Terminal):
         self._docs = [dpr.DocData.load_doc(p) for p in paths_doc]
         self._ldoc = self._safe_load_doc(0) # pointer to currently loaded doc (body_left)
         self._rdoc = self._safe_load_doc(1) # pointer to currently loaded doc (body_right)
-        self._ldoc_focused = True
+
+        self._doc_focused   = self._ldoc
+        self._doc_unfocused = self._rdoc
 
         if not isinstance(self._ldoc, dpr.DocJson): return
         if not isinstance(self._rdoc, dpr.DocJson): return
@@ -30,6 +32,11 @@ class TUIDocPrisma(pr.Terminal):
     def on_start(self):
         self.pair_help = pr.init_pair(1, pr.COLOR_BLACK, pr.COLOR_CYAN)
         self.pair_highlight_section = pr.init_pair(2, pr.COLOR_GREEN, pr.COLOR_BLACK)
+
+        dpr.COLOR_PAIR_UNMATCHED = pr.init_pair(3, pr.COLOR_RED    , pr.COLOR_BLACK, )
+        dpr.COLOR_PAIR_DIFFERENT = pr.init_pair(4, pr.COLOR_YELLOW , pr.COLOR_BLACK, )
+        dpr.COLOR_PAIR_EQUAL     = pr.init_pair(5, pr.COLOR_GREEN  , pr.COLOR_BLACK, )
+
 
         self.body   = self.root.create_child(-self.H_GUIDES, 1.0,  0, 0)
         self.footer = self.root.create_child( self.H_GUIDES, 1.0, -1, 0)
@@ -87,7 +94,7 @@ class TUIDocPrisma(pr.Terminal):
 
     # --------------------------------------------------------------------------
     def _draw_borders(self):
-        if self._ldoc_focused:
+        if self._ldoc is self._doc_focused:
             attr_lborder = pr.A_BOLD | self.pair_highlight_section
             attr_rborder = pr.A_NORMAL
         else:
@@ -105,34 +112,31 @@ class TUIDocPrisma(pr.Terminal):
 
     # --------------------------------------------------------------------------
     def _scroll_up(self, nlines: int):
-        doc = self._get_focused_doc()
-        doc.idx = max(0, doc.idx - nlines)
+        self._doc_focused.idx = max(0, self._doc_focused.idx - nlines)
 
 
     # --------------------------------------------------------------------------
     def _scroll_down(self, nlines: int):
-        doc = self._get_focused_doc()
-        doc.idx = min(doc.idx + nlines, len(doc.data) - 1)
+        self._doc_focused.idx = min(self._doc_focused.idx + nlines, len(self._doc_focused.data) - 1)
 
 
     # ------------------------------------------------------------------------------
     def _switch_focus(self):
-        self._ldoc_focused = not self._ldoc_focused
+        self._doc_focused, self._doc_unfocused = self._doc_unfocused, self._doc_focused
 
 
     # ------------------------------------------------------------------------------
     def _prev_node_focused(self):
-        self._get_focused_doc().prev_node()
+        self._doc_focused.prev_node()
+        self._doc_focused.update_comparison_states()
+        self._doc_unfocused.update_comparison_states()
 
 
     # ------------------------------------------------------------------------------
     def _next_node_focused(self):
-        self._get_focused_doc().next_node()
-
-
-    # ------------------------------------------------------------------------------
-    def _get_focused_doc(self) -> dpr.DocData:
-        return self._ldoc if self._ldoc_focused else self._rdoc
+        self._doc_focused.next_node()
+        self._doc_focused.update_comparison_states()
+        self._doc_unfocused.update_comparison_states()
 
 
     # ------------------------------------------------------------------------------

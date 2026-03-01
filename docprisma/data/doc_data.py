@@ -15,6 +15,10 @@ class DocData:
         self.ypos: int = 0
         self.section_width = 0
 
+        self._comparison_partner: "DocData" | None = None
+        self._comparison_states: list[dpr.ComparisonState] | None = []
+
+
     # --------------------------------------------------------------------------
     @staticmethod
     def load_doc(path_doc: Path) -> "DocData":
@@ -23,6 +27,20 @@ class DocData:
         if path_doc.suffix.lower() == ".csv":
             raise NotImplementedError()
         raise NotImplementedError()
+
+
+    # --------------------------------------------------------------------------
+    def link_comparison_partner(self, other: "DocData"):
+        self ._comparison_partner = other
+        other._comparison_partner = self
+        self.update_comparison_states()
+        other.update_comparison_states()
+
+
+    # --------------------------------------------------------------------------
+    def update_comparison_states(self) -> None:
+        self._comparison_states = None
+
 
     # --------------------------------------------------------------------------
     def iter_lines(self, nlines: int = None, filterkey: callable = None):
@@ -57,6 +75,11 @@ class DocData:
     # --------------------------------------------------------------------------
     def next_node(self) -> None:
         pass
+
+    # --------------------------------------------------------------------------
+    def _get_comparison_attr(self, idx: int) -> int:
+        if self._comparison_states is None: return pr.A_NORMAL
+        return dpr.ComparisonState.get_color_pair(self._comparison_states[idx])
 
 
 # //////////////////////////////////////////////////////////////////////////////

@@ -23,15 +23,6 @@ class DocJson(dpr.DocData):
         self._prev_nodes : list[list | dict] = [] # store the pointers for previous nodes
         self._nodes_path : str = "/" # string with the path of the current node
 
-        self._comparison_partner: "DocJson" | None = None
-        self._comparison_states: list[dpr.ComparisonState] = []
-        self._update_data()
-
-
-    # --------------------------------------------------------------------------
-    def link_comparison_partner(self, other: "DocJson"):
-        self ._comparison_partner = other
-        other._comparison_partner = self
         self._update_data()
 
 
@@ -46,57 +37,71 @@ class DocJson(dpr.DocData):
                 if self._node_is_dict:
                     key = child
                     child = self._node[key]
-                    out = f"{key}: "
+                    row_chars = f"{key}: "
                 else:
-                    out = f"({type(child).__name__}): "
+                    row_chars = f"({type(child).__name__}): "
 
                 if isinstance(child, list):
-                    out = f"{out}list[{len(child)}]"
+                    row_chars = f"{row_chars}list[{len(child)}]"
                 elif isinstance(child, dict):
-                    out = f"{out}dict[{len(child)}]"
+                    row_chars = f"{row_chars}dict[{len(child)}]"
                 else:
-                    out = f"{out}{child}"
+                    row_chars = f"{row_chars}{child}"
 
-                highlight_end = len(out) if idx == self.idx else 0
-                yield out, 0, highlight_end
+                attr_highlight = pr.A_REVERSE if idx == self.idx else pr.A_NORMAL
+                color = self._get_comparison_attr(idx)
+                row_attrs = [color | attr_highlight for _ in row_chars]
+
+                yield row_chars, row_attrs
             return
 
         i0 = 0
-        out = ""
         highlight_start = 0
         highlight_end = 0
+        buffer = ""
+        comparison_colors = []
         children = tuple(map(str, children))
         for idx,child in enumerate(children):
             last_iter = idx == len(children) - 1
 
             if idx == self.idx:
-                highlight_start = len(out)
+                highlight_start = len(buffer)
                 highlight_end = highlight_start + len(child)
 
-            out += child + " "
+            child += " "
 
-            next_len = len(out) + (len(children[idx+1]) if not last_iter else 0)
+            buffer += child
+            comparison_colors += [self._get_comparison_attr(idx) for _ in child]
+
+            next_len = len(buffer) + (len(children[idx+1]) if not last_iter else 0)
 
             if not last_iter and (next_len < self.section_width):
                 continue
 
             i1 = idx + 1
 
-            yield ' '.join(children[i0:i1]), highlight_start, highlight_end
+            row_chars = ' '.join(children[i0:i1])
+            row_attrs = [
+                color | (pr.A_REVERSE if highlight_start <= j < highlight_end else pr.A_NORMAL)
+                for j,color in enumerate(comparison_colors)
+            ]
+
+            yield row_chars, row_attrs
             highlight_start = 0
             highlight_end = 0
-            out = ""
+            buffer = ""
+            comparison_colors.clear()
             i0 = i1
 
 
     # --------------------------------------------------------------------------
     def get_chars_attrs(self, nlines: int = None):
-        lines,h_starts,h_ends = zip(*self.iter_lines(nlines))
+        lines,attrs = zip(*self.iter_lines(nlines))
         w_max = max(map(len, lines), default = 0)
         chars = [line.ljust(w_max) for line in lines]
         attrs = [
-            hs*[pr.A_NORMAL] + (he-hs)*[pr.A_REVERSE] + (w_max-he)*[pr.A_NORMAL]
-            for hs,he in zip(h_starts, h_ends)
+            row_attrs + (w_max-len(row_attrs))*[pr.A_NORMAL]
+            for row_attrs in attrs
         ]
         return chars, attrs
 
@@ -131,34 +136,34 @@ class DocJson(dpr.DocData):
 
 
     # --------------------------------------------------------------------------
+    def update_comparison_states(self) -> None:
+        if self._comparison_partner is None:
+            self._comparison_states = None
+            return
+
+        other = self._comparison_partner
+        if not isinstance(other, DocJson):
+            self._comparison_states = None
+            return
+
+        if self._node_is_dict:
+            self ._comparison_states = dpr.ComparisonState.compare_dicts(
+                keys = self.data, data = self._node, ref = other._node
+            ) if other._node_is_dict else None
+
+        else:
+            self._comparison_states = dpr.ComparisonState.compare_lists(
+                data = self._node, ref = other._node
+            ) if not other._node_is_dict else None
+
+
+    # --------------------------------------------------------------------------
     def _update_data(self):
         has_container_children = any(map(is_container, super().iter_lines(nlines = None, filterkey = None)))
 
         self._node_is_dict = isinstance(self._node, dict)
         self._node_is_leaf = not (self._node_is_dict or has_container_children)
         self.data = sorted(self._node.keys()) if self._node_is_dict else self._node
-
-        if self._comparison_partner is None: return
-        self._update_comparison_states()
-
-
-    # --------------------------------------------------------------------------
-    def _update_comparison_states(self) -> None:
-        other = self._comparison_partner
-
-        ### Compare two dict nodes
-        if self._node_is_dict:
-            if not other._node_is_dict: return
-            self ._comparison_states = dpr.ComparisonState.compare_dicts(
-                keys = self.data, data = self._node, ref = other._node
-            )
-            return
-
-        ### Compare two list nodes
-        if other._node_is_dict: return
-        self._comparison_states = dpr.ComparisonState.compare_lists(
-            data = self._node, ref = other._node
-        )
 
 
 # //////////////////////////////////////////////////////////////////////////////

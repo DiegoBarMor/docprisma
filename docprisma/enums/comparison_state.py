@@ -1,5 +1,7 @@
 from enum import Enum, auto
 
+import docprisma as dpr
+
 # //////////////////////////////////////////////////////////////////////////////
 class ComparisonState(Enum):
     UNMATCHED = auto()
@@ -8,8 +10,17 @@ class ComparisonState(Enum):
 
     # --------------------------------------------------------------------------
     @classmethod
+    def get_color_pair(cls, state: "ComparisonState"):
+        match state:
+            case cls.UNMATCHED: return dpr.COLOR_PAIR_UNMATCHED
+            case cls.DIFFERENT: return dpr.COLOR_PAIR_DIFFERENT
+            case cls.EQUAL: return dpr.COLOR_PAIR_EQUAL
+
+
+    # --------------------------------------------------------------------------
+    @classmethod
     def compare_lists(cls, data: list, ref: list) -> list["ComparisonState"]:
-        min_len, max_len = sorted(len(data), len(ref))
+        min_len, max_len = sorted((len(data), len(ref)))
         comparison = [cls.EQUAL if d == r else cls.DIFFERENT for d,r in zip(data, ref)]
         if min_len != max_len:
             comparison += [cls.UNMATCHED for _ in range(max_len - min_len)]

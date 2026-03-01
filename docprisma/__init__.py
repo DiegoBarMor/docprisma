@@ -1,3 +1,7 @@
+COLOR_PAIR_UNMATCHED = 0
+COLOR_PAIR_DIFFERENT = 0
+COLOR_PAIR_EQUAL = 0
+
 from .enums.comparison_state import ComparisonState
 
 from .data.doc_data import DocData
