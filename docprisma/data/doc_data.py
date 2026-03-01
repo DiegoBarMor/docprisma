@@ -16,7 +16,7 @@ class DocData:
         self.section_width = 0
 
         self._comparison_partner: "DocData" | None = None
-        self._comparison_states: list[dpr.ComparisonState] | None = []
+        self._comparison_states: list[dpr.ComparisonState] | None = None
 
 
     # --------------------------------------------------------------------------
@@ -43,12 +43,14 @@ class DocData:
 
 
     # ------------------------------------------------------------------------------
-    def update_ypos(self, ref_h: int):
-        y_rel = self.idx - self.ypos
+    def update_ypos(self, ref_h: int, idx: int = None):
+        if idx is None: idx = self.idx
+
+        y_rel = idx - self.ypos
         if y_rel < 0:
-            self.ypos = self.idx
+            self.ypos = idx
         elif y_rel >= ref_h:
-            self.ypos = self.idx - ref_h + 1
+            self.ypos = idx - ref_h + 1
 
 
     # --------------------------------------------------------------------------

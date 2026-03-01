@@ -102,49 +102,67 @@ class DocJson(dpr.DocData):
 
 
     # --------------------------------------------------------------------------
-    def _iter_chars_attrs_leaf(self, nlines: int):
-        self.ypos = 0 # ignore previous corrections, it must be handled differently for leaf nodes
-
+    def _subroutine_chars_attrs_leaf_idxs(self, children, nlines: int):
         i0 = 0
         cum_len = 0
         yield_count = 0
-        highlight_start = 0
-        highlight_end = 0
         comparison_colors = []
 
-        children = tuple(map(str, self._iter_children()))
-        for idx,child in enumerate(children):
-            last_iter = idx == len(children) - 1
+        highlight_start = 0
+        highlight_end = 0
+        highlighted_row: int | None = None
 
+        for idx_child,child in enumerate(children):
+            if (highlighted_row is not None) and (yield_count > nlines): break
+
+            i1 = idx_child + 1
+            is_last_iter = i1 == len(children)
             this_len = len(child)
-            next_len = len(children[idx+1]) if not last_iter else 0
+            next_len = len(children[i1]) if not is_last_iter else 0
 
-            if idx == self.idx:
+            if idx_child == self.idx:
                 highlight_start = cum_len
                 highlight_end = cum_len + this_len
+                highlighted_row = yield_count
+                yield_count = 0
 
             this_len += 1 # account for the space between rows
-            comparison_colors += [self._get_comparison_attr(idx) for _ in range(this_len)]
+            comparison_colors.extend(self._get_comparison_attr(idx_child) for _ in range(this_len))
             cum_len += this_len
 
-            if not last_iter and (cum_len + next_len < self.section_width):
+            if not is_last_iter and (cum_len + next_len < self.section_width):
                 continue
 
-            i1 = idx + 1
+            yield i0, i1, highlight_start, highlight_end, highlighted_row, comparison_colors
 
-            row_chars = ' '.join(children[i0:i1])
-            row_attrs = [
-                color | (pr.A_REVERSE if highlight_start <= j < highlight_end else pr.A_NORMAL)
-                for j,color in enumerate(comparison_colors)
-            ]
-
-            yield row_chars, row_attrs
             cum_len = 0
             yield_count += 1
             highlight_start = 0
             highlight_end = 0
-            comparison_colors.clear()
+            comparison_colors = []
             i0 = i1
+
+
+    # --------------------------------------------------------------------------
+    def _iter_chars_attrs_leaf(self, nlines: int):
+        self.ypos = 0 # ignore previous corrections when fetching the children
+        children = tuple(map(str, self._iter_children()))
+
+        arr_i0, arr_i1s, arr_hs, arr_he, arr_highlighted, arr_colors =\
+            zip(*self._subroutine_chars_attrs_leaf_idxs(children, nlines))
+
+        idx_highlighted = max((i for i in arr_highlighted if i is not None), default = 0)
+        self.update_ypos(ref_h = nlines, idx = idx_highlighted) # bring back self.ypos to an useful value
+
+        zipped = zip(arr_i0, arr_i1s, arr_hs, arr_he, arr_colors)
+        for idx_row,(i0, i1, hstart, hend, colors) in enumerate(zipped): # [WIP]
+            row_chars = ' '.join(children[i0:i1])
+            row_attrs = [
+                color | (pr.A_REVERSE if hstart <= j < hend else pr.A_NORMAL)
+                for j,color in enumerate(colors)
+            ]
+            yield row_chars, row_attrs
+
 
 
     # --------------------------------------------------------------------------
