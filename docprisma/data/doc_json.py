@@ -27,76 +27,9 @@ class DocJson(dpr.DocData):
 
 
     # --------------------------------------------------------------------------
-    def iter_lines(self, nlines: int = None):
-        children = super().iter_lines(nlines = None, filterkey = None)
-
-        if not self._node_is_leaf:
-            for i,child in enumerate(tuple(children)[self.ypos : self.ypos+nlines]):
-                idx = i + self.ypos
-
-                if self._node_is_dict:
-                    key = child
-                    child = self._node[key]
-                    row_chars = f"{key}: "
-                else:
-                    row_chars = f"({type(child).__name__}): "
-
-                if isinstance(child, list):
-                    row_chars = f"{row_chars}list[{len(child)}]"
-                elif isinstance(child, dict):
-                    row_chars = f"{row_chars}dict[{len(child)}]"
-                else:
-                    row_chars = f"{row_chars}{child}"
-
-                attr_highlight = pr.A_REVERSE if idx == self.idx else pr.A_NORMAL
-                color = self._get_comparison_attr(idx)
-                row_attrs = [color | attr_highlight for _ in row_chars]
-
-                yield row_chars, row_attrs
-            return
-
-        i0 = 0
-        highlight_start = 0
-        highlight_end = 0
-        buffer = ""
-        comparison_colors = []
-        children = tuple(map(str, children))
-        for idx,child in enumerate(children):
-            last_iter = idx == len(children) - 1
-
-            if idx == self.idx:
-                highlight_start = len(buffer)
-                highlight_end = highlight_start + len(child)
-
-            child += " "
-
-            buffer += child
-            comparison_colors += [self._get_comparison_attr(idx) for _ in child]
-
-            next_len = len(buffer) + (len(children[idx+1]) if not last_iter else 0)
-
-            if not last_iter and (next_len < self.section_width):
-                continue
-
-            i1 = idx + 1
-
-            row_chars = ' '.join(children[i0:i1])
-            row_attrs = [
-                color | (pr.A_REVERSE if highlight_start <= j < highlight_end else pr.A_NORMAL)
-                for j,color in enumerate(comparison_colors)
-            ]
-
-            yield row_chars, row_attrs
-            highlight_start = 0
-            highlight_end = 0
-            buffer = ""
-            comparison_colors.clear()
-            i0 = i1
-
-
-    # --------------------------------------------------------------------------
     def get_chars_attrs(self, nlines: int = None):
-        lines,attrs = zip(*self.iter_lines(nlines))
+        iterator = self._iter_chars_attrs_leaf if self._node_is_leaf else self._iter_chars_attrs_nonleaf
+        lines,attrs = zip(*iterator(nlines))
         w_max = max(map(len, lines), default = 0)
         chars = [line.ljust(w_max) for line in lines]
         attrs = [
@@ -159,11 +92,79 @@ class DocJson(dpr.DocData):
 
     # --------------------------------------------------------------------------
     def _update_data(self):
-        has_container_children = any(map(is_container, super().iter_lines(nlines = None, filterkey = None)))
+        has_container_children = any(map(is_container, self._iter_children()))
 
         self._node_is_dict = isinstance(self._node, dict)
         self._node_is_leaf = not (self._node_is_dict or has_container_children)
         self.data = sorted(self._node.keys()) if self._node_is_dict else self._node
+
+
+    # --------------------------------------------------------------------------
+    def _iter_chars_attrs_leaf(self, nlines: int):
+        i0 = 0
+        highlight_start = 0
+        highlight_end = 0
+        buffer = ""
+        comparison_colors = []
+        children = tuple(map(str, self._iter_children()))
+        for idx,child in enumerate(children):
+            last_iter = idx == len(children) - 1
+
+            if idx == self.idx:
+                highlight_start = len(buffer)
+                highlight_end = highlight_start + len(child)
+
+            child += " "
+
+            buffer += child
+            comparison_colors += [self._get_comparison_attr(idx) for _ in child]
+
+            next_len = len(buffer) + (len(children[idx+1]) if not last_iter else 0)
+
+            if not last_iter and (next_len < self.section_width):
+                continue
+
+            i1 = idx + 1
+
+            row_chars = ' '.join(children[i0:i1])
+            row_attrs = [
+                color | (pr.A_REVERSE if highlight_start <= j < highlight_end else pr.A_NORMAL)
+                for j,color in enumerate(comparison_colors)
+            ]
+
+            yield row_chars, row_attrs
+            highlight_start = 0
+            highlight_end = 0
+            buffer = ""
+            comparison_colors.clear()
+            i0 = i1
+
+
+    # --------------------------------------------------------------------------
+    def _iter_chars_attrs_nonleaf(self, nlines: int):
+        children = self._iter_children(nlines)
+        for i,child in enumerate(tuple(children)):
+            idx = i + self.ypos
+
+            if self._node_is_dict:
+                key = child
+                child = self._node[key]
+                row_chars = f"{key}: "
+            else:
+                row_chars = f"({type(child).__name__}): "
+
+            if isinstance(child, list):
+                row_chars = f"{row_chars}list[{len(child)}]"
+            elif isinstance(child, dict):
+                row_chars = f"{row_chars}dict[{len(child)}]"
+            else:
+                row_chars = f"{row_chars}{child}"
+
+            attr_highlight = pr.A_REVERSE if idx == self.idx else pr.A_NORMAL
+            color = self._get_comparison_attr(idx)
+            row_attrs = [color | attr_highlight for _ in row_chars]
+
+            yield row_chars, row_attrs
 
 
 # //////////////////////////////////////////////////////////////////////////////

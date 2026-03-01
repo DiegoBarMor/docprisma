@@ -43,38 +43,31 @@ class DocData:
 
 
     # --------------------------------------------------------------------------
-    def iter_lines(self, nlines: int = None, filterkey: callable = None):
-        # [WIP] this is likely redundant, might remove it altogether
-        if nlines    is None: nlines = len(self.data)
-        if filterkey is None: filterkey = lambda _: True
-
-        lines = tuple(
-            filter(filterkey, self.data)
-        )[self.ypos : self.ypos+nlines]
-
-        for line in lines:
-            yield line
-
-    # --------------------------------------------------------------------------
-    def get_chars_attrs(self, nlines: int = None):
+    def get_chars_attrs(self, nlines: int = None) -> tuple[list[str], list[list[int]]]:
         return [], []
-        # lines = tuple(self.iter_lines(nlines)) # [WIP] something like this will be fine for CSV handling
-        # w_max = max(map(len, lines), default = 0) # [WIP] remove it from here once it's there
-        # chars = [line.ljust(w_max) for line in lines]
-        # attrs = [w_max*[pr.A_REVERSE if i == self.idx else pr.A_NORMAL] for i in range(len(chars))]
-        # return chars, attrs
+
 
     # --------------------------------------------------------------------------
     def get_nodes_path(self) -> str:
         return ""
 
+
     # --------------------------------------------------------------------------
     def prev_node(self) -> None:
-        pass
+        return
+
 
     # --------------------------------------------------------------------------
     def next_node(self) -> None:
-        pass
+        return
+
+
+    # --------------------------------------------------------------------------
+    def _iter_children(self, nlines: int = None):
+        if nlines is None: nlines = len(self.data)
+        lines = self.data[self.ypos : self.ypos+nlines]
+        yield from lines
+
 
     # --------------------------------------------------------------------------
     def _get_comparison_attr(self, idx: int) -> int:

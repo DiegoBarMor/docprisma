@@ -19,9 +19,7 @@ class TUIDocPrisma(pr.Terminal):
         self._docs = [dpr.DocData.load_doc(p) for p in paths_doc]
         self._ldoc = self._safe_load_doc(0) # pointer to currently loaded doc (body_left)
         self._rdoc = self._safe_load_doc(1) # pointer to currently loaded doc (body_right)
-
-        self._doc_focused   = self._ldoc
-        self._doc_unfocused = self._rdoc
+        self._doc_focused = self._ldoc
 
         if not isinstance(self._ldoc, dpr.DocJson): return
         if not isinstance(self._rdoc, dpr.DocJson): return
@@ -122,21 +120,21 @@ class TUIDocPrisma(pr.Terminal):
 
     # ------------------------------------------------------------------------------
     def _switch_focus(self):
-        self._doc_focused, self._doc_unfocused = self._doc_unfocused, self._doc_focused
+        self._doc_focused = self._rdoc if self._doc_focused is self._ldoc else self._ldoc
 
 
     # ------------------------------------------------------------------------------
     def _prev_node_focused(self):
         self._doc_focused.prev_node()
-        self._doc_focused.update_comparison_states()
-        self._doc_unfocused.update_comparison_states()
+        self._ldoc.update_comparison_states()
+        self._rdoc.update_comparison_states()
 
 
     # ------------------------------------------------------------------------------
     def _next_node_focused(self):
         self._doc_focused.next_node()
-        self._doc_focused.update_comparison_states()
-        self._doc_unfocused.update_comparison_states()
+        self._ldoc.update_comparison_states()
+        self._rdoc.update_comparison_states()
 
 
     # ------------------------------------------------------------------------------
