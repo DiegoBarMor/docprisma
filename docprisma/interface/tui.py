@@ -20,6 +20,7 @@ class TUIDocPrisma(pr.Terminal):
         self._ldoc = self._safe_load_doc(0) # pointer to currently loaded doc (body_left)
         self._rdoc = self._safe_load_doc(1) # pointer to currently loaded doc (body_right)
         self._doc_focused = self._ldoc
+        self._synced_mode = False
 
         if not isinstance(self._ldoc, dpr.DocJson): return
         if not isinstance(self._rdoc, dpr.DocJson): return
@@ -70,10 +71,12 @@ class TUIDocPrisma(pr.Terminal):
             case pr.KEY_NPAGE:   self._scroll_down(self.NLINES_FAST_SCROLL)
             case self.KEY_SCROLL_TOP:    self._scroll_up(float("inf"))
             case self.KEY_SCROLL_BOTTOM: self._scroll_down(float("inf"))
+            case pr.KEY_S_LOWER: self._synced_mode = not self._synced_mode
+            case pr.KEY_S_UPPER: self._synced_mode = not self._synced_mode
             case pr.KEY_F_LOWER: self._switch_focus()
             case pr.KEY_F_UPPER: self._switch_focus()
-            case pr.KEY_LEFT:  self._prev_node_focused()
-            case pr.KEY_RIGHT: self._next_node_focused()
+            case pr.KEY_LEFT:  self._prev_node()
+            case pr.KEY_RIGHT: self._next_node()
 
 
     # --------------------------------------------------------------------------
@@ -98,12 +101,11 @@ class TUIDocPrisma(pr.Terminal):
 
     # --------------------------------------------------------------------------
     def _draw_borders(self):
-        if self._ldoc is self._doc_focused:
-            attr_lborder = pr.A_BOLD | self.pair_highlight_section
-            attr_rborder = pr.A_NORMAL
-        else:
-            attr_lborder = pr.A_NORMAL
-            attr_rborder = pr.A_BOLD | self.pair_highlight_section
+        attr_lborder = pr.A_BOLD | self.pair_highlight_section \
+            if (self._synced_mode or self._ldoc is self._doc_focused) else pr.A_NORMAL
+
+        attr_rborder = pr.A_BOLD | self.pair_highlight_section \
+            if (self._synced_mode or self._rdoc is self._doc_focused) else pr.A_NORMAL
 
         self.body_left.draw_border(attr = attr_lborder)
         self.body_left.draw_text(0, 2, f" {self._ldoc.name}:{self._ldoc.get_nodes_path()} ", pr.A_BOLD)
@@ -116,12 +118,12 @@ class TUIDocPrisma(pr.Terminal):
 
     # --------------------------------------------------------------------------
     def _scroll_up(self, nlines: int):
-        self._doc_focused.scroll_up(nlines, self.body_left.h - 2)
+        for d in self._iter_active_docs(): d.scroll_up(nlines, self.body.h - 2)
 
 
     # --------------------------------------------------------------------------
     def _scroll_down(self, nlines: int):
-        self._doc_focused.scroll_down(nlines, self.body_left.h - 2)
+        for d in self._iter_active_docs(): d.scroll_down(nlines, self.body.h - 2)
 
 
     # ------------------------------------------------------------------------------
@@ -130,19 +132,19 @@ class TUIDocPrisma(pr.Terminal):
 
 
     # ------------------------------------------------------------------------------
-    def _prev_node_focused(self):
-        self._doc_focused.prev_node()
+    def _prev_node(self):
+        for d in self._iter_active_docs(): d.prev_node()
+        for d in self._iter_active_docs(): d.update_idx_row_top(self.body.h - 2)
         self._ldoc.update_comparison_states()
         self._rdoc.update_comparison_states()
-        self._doc_focused.update_idx_row_top(self.body_left.h - 2)
 
 
     # ------------------------------------------------------------------------------
-    def _next_node_focused(self):
-        self._doc_focused.next_node()
+    def _next_node(self):
+        for d in self._iter_active_docs(): d.next_node()
+        for d in self._iter_active_docs(): d.reset_idx_row_top()
         self._ldoc.update_comparison_states()
         self._rdoc.update_comparison_states()
-        self._doc_focused.idx_row_top = 0
 
 
     # ------------------------------------------------------------------------------
@@ -150,6 +152,15 @@ class TUIDocPrisma(pr.Terminal):
         if not (0 <= idx < len(self._docs)):
             return dpr.DocData()
         return self._docs[idx]
+
+
+    # ------------------------------------------------------------------------------
+    def _iter_active_docs(self):
+        if self._synced_mode:
+            yield self._ldoc
+            yield self._rdoc
+        else:
+            yield self._doc_focused
 
 
 # //////////////////////////////////////////////////////////////////////////////

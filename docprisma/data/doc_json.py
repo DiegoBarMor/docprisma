@@ -64,9 +64,9 @@ class DocJson(dpr.DocData):
         child = self._node[key]
 
         if not is_container(child): return
+        self._prev_nodes.append(self._node)
         self._node = child
         self._nodes_path += f"{key}/"
-        self._prev_nodes.append(self._node)
 
         self._prev_idxs.append(self.idx_child_current)
         self.idx_child_current = 0

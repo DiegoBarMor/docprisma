@@ -57,6 +57,11 @@ class DocData:
         self.idx_row_current = self.idx_child_current
 
 
+    # ------------------------------------------------------------------------------
+    def reset_idx_row_top(self):
+        self.idx_row_top = 0
+
+
     # --------------------------------------------------------------------------
     def get_chars_attrs(self, nlines: int = None) -> tuple[list[str], list[list[int]]]:
         return [], []
