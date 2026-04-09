@@ -1,3 +1,5 @@
+from ._version import __version__
+
 COLOR_PAIR_UNMATCHED = 0
 COLOR_PAIR_DIFFERENT = 0
 COLOR_PAIR_EQUAL = 0

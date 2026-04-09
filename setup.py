@@ -1,8 +1,12 @@
 from setuptools import setup, find_packages
+from pathlib import Path
+
+__version__: str
+exec(Path("docprisma/_version.py").read_text())
 
 setup(
     name="docprisma",
-    version="1.0.0",
+    version=__version__,
     description="Tool for fast inspection and comparison of JSON files inside the terminal",
     keywords="json terminal tui",
     long_description=open("README.md").read(),

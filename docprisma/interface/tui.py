@@ -20,7 +20,7 @@ class TUIDocPrisma(pr.Terminal):
         self._ldoc = self._safe_load_doc(0) # pointer to currently loaded doc (body_left)
         self._rdoc = self._safe_load_doc(1) # pointer to currently loaded doc (body_right)
         self._doc_focused = self._ldoc
-        self._synced_mode = False
+        self._synced_mode = True
 
         if not isinstance(self._ldoc, dpr.DocJson): return
         if not isinstance(self._rdoc, dpr.DocJson): return
@@ -32,9 +32,9 @@ class TUIDocPrisma(pr.Terminal):
         self.pair_help = pr.init_pair(1, pr.COLOR_BLACK, pr.COLOR_CYAN)
         self.pair_highlight_section = pr.init_pair(2, pr.COLOR_GREEN, pr.COLOR_BLACK)
 
-        dpr.COLOR_PAIR_UNMATCHED = pr.init_pair(3, pr.COLOR_RED    , pr.COLOR_BLACK, )
-        dpr.COLOR_PAIR_DIFFERENT = pr.init_pair(4, pr.COLOR_YELLOW , pr.COLOR_BLACK, )
-        dpr.COLOR_PAIR_EQUAL     = pr.init_pair(5, pr.COLOR_GREEN  , pr.COLOR_BLACK, )
+        dpr.COLOR_PAIR_UNMATCHED = pr.init_pair(3, pr.COLOR_BLACK , pr.COLOR_RED)
+        dpr.COLOR_PAIR_DIFFERENT = pr.init_pair(4, pr.COLOR_BLACK, pr.COLOR_YELLOW,)
+        dpr.COLOR_PAIR_EQUAL     = pr.init_pair(5,  pr.COLOR_GREEN , pr.COLOR_BLACK,)
 
 
         self.body   = self.root.create_child(-self.H_GUIDES, 1.0,  0, 0)
